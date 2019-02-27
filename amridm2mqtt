@@ -34,11 +34,11 @@ auth = None
 if len(settings.MQTT_USER) and len(settings.MQTT_PASSWORD):
 	auth = {'username':settings.MQTT_USER, 'password':settings.MQTT_PASSWORD}
 
-def get_last_interval(meter_id):
-    return last_reading.get(meter_id, (None))
+#def get_last_interval(meter_id):
+#    return last_reading.get(meter_id, (None))
 
-def set_last_interval(meter_id, interval_ID):
-    last_reading[meter_id] = (interval_ID)
+#def set_last_interval(meter_id, interval_ID):
+#    last_reading[meter_id] = (interval_ID)
 
 # send data to MQTT broker defined in settings
 def send_mqtt(topic, payload,):
@@ -54,7 +54,8 @@ time.sleep(5)
 
 # start the rtlamr program.
 rtlamr = subprocess.Popen([settings.RTLAMR,
-    '-msgtype=idm',
+    '-msgtype=scm',
+    '-symbollength=32',
     '-format=csv'], stdout=subprocess.PIPE)
 
 while True:
@@ -65,47 +66,25 @@ while True:
         # split string on commas
         flds = amrline.split(',')
 
-        if len(flds) != 66:
-            # proper IDM results have 66 fields
+        if len(flds) != 9:
+
+            # proper SCM results have 9 fields
             continue
 
         # make sure the meter id is one we want
-        meter_id = int(flds[9])
+        meter_id = int(flds[3])
         if len(settings.WATCHED_METERS) and meter_id not in settings.WATCHED_METERS:
             continue
 
         # get some required info: current meter reading, current interval id, most recent interval usage
-        read_cur = int(flds[15])
-        interval_cur = int(flds[10])
-        idm_read_cur = int(flds[16])
+        read_cur = int(flds[7])
 
-        # retreive the interval id of the last time we sent to MQTT
-        interval_last = get_last_interval(meter_id)
+        current_reading_in_kwh = (read_cur * settings.WH_MULTIPLIER) / 1000
 
-        if interval_cur != interval_last:
-
-            # as observed on on my meter...
-            # using values set in settings...
-            # each idm interval is 5 minutes (12x per hour),
-            # measured in hundredths of a kilowatt hour
-            # take the last interval usage times 10 to get watt-hours,
-            # then times 12 to get average usage in watts
-            rate = idm_read_cur * settings.WH_MULTIPLIER * settings.READINGS_PER_HOUR
-
-            current_reading_in_kwh = (read_cur * settings.WH_MULTIPLIER) / 1000
-
-            send_mqtt(
-                'readings/' + str(meter_id) + '/meter_reading',
-                '%s' % (current_reading_in_kwh)
-            )
-
-            send_mqtt(
-                'readings/' + str(meter_id) + '/meter_rate',
-                '%s' % (rate)
-            )
-
-            # store interval ID to avoid duplicating data
-            set_last_interval(meter_id, interval_cur)
+        send_mqtt(
+            'readings/' + str(meter_id) + '/meter_reading',
+            '%s' % (current_reading_in_kwh)
+        )
 
     except:
         time.sleep(2)
