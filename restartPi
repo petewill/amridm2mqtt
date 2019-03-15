@@ -1,0 +1,10 @@
+#!/bin/bash
+
+case "$(pidof rtlamr | wc -w)" in
+
+0)  echo "Restarting Pi - rtlamr not running - $(date)" >> /var/log/amridm2mqtt.txt
+    shutdown -r now
+    ;;
+1)  # all ok
+    ;;
+esac

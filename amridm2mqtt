@@ -9,10 +9,11 @@ MQTT_HOST = String containing the MQTT server address.
 MQTT_PORT = An int containing the port the MQTT server is active on.
 
 '''
+import time
+time.sleep(15)
 import subprocess
 import signal
 import sys
-import time
 import paho.mqtt.publish as publish
 import settings
 
@@ -33,12 +34,6 @@ auth = None
 
 if len(settings.MQTT_USER) and len(settings.MQTT_PASSWORD):
 	auth = {'username':settings.MQTT_USER, 'password':settings.MQTT_PASSWORD}
-
-#def get_last_interval(meter_id):
-#    return last_reading.get(meter_id, (None))
-
-#def set_last_interval(meter_id, interval_ID):
-#    last_reading[meter_id] = (interval_ID)
 
 # send data to MQTT broker defined in settings
 def send_mqtt(topic, payload,):
@@ -80,16 +75,19 @@ while True:
         # get some required info: current meter reading, current interval id, most recent interval usage
         read_cur = int(flds[7])
 
-        #Perform WH_MULTIPLIER math only on electric meters
         meter_type = int(flds[4])
         if(meter_type == 7):
-            current_reading_in_kwh = (read_cur * settings.WH_MULTIPLIER) / 1000
+            # Perform WH_MULTIPLIER math only on electric meters
+            meter_reading_adj = (read_cur * settings.WH_MULTIPLIER) / 1000
+        elif (meter_type == 13):
+            # Perform GAL_MULTIPLIER math only on water meters
+            meter_reading_adj = (read_cur * settings.GAL_MULTIPLIER) / 1000
         else:
-            current_reading_in_kwh = read_cur
+            meter_reading_adj = read_cur
 
         send_mqtt(
             'readings/' + str(meter_id) + '/meter_reading',
-            '%s' % (current_reading_in_kwh)
+            '%s' % (meter_reading_adj)
         )
 
     except:

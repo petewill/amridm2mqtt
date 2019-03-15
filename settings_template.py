@@ -14,6 +14,16 @@ WATCHED_METERS = []
 # MULTIPLIER needs to be a number
 WH_MULTIPLIER = 1000
 
+# multiplier to get reading to Gallons
+# examples:
+#   for meter providing readings in gallons
+#      MULTIPLIER = 1000
+#   for meter providing readings in gallons
+#   with 2 extra digits of precision
+#      MULTIPLIER = 10
+# MULTIPLIER needs to be a number
+GAL_MULTIPLIER = 1000
+
 # number of IDM intervals per hour reported by the meter
 # examples:
 #   for meter providing readings every 5 minutes
